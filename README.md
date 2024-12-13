@@ -15,7 +15,7 @@ MolCraft checks the distances between the added molecules and the atoms in the c
 
 More specifically, for a atom A and a atom B, only if the following condition is satisfied, MolCraft will add:
 
-$$ Dis(A, B) <  (R_A + R_B) * const\_dist $$
+$$ Dis(A, B) <  (R_A + R_B) * const\underline{}dist $$
 
 , where $Dis(A, B)$ is the distance between atom A and atom B, $R_A$ and $R_B$ are the van der Waals radii of atom A and atom B read from `VdW.ini`.
 
