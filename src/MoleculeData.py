@@ -56,19 +56,21 @@ class POSCAR():
         # remove information has been read
         lines = lines[7:]
 
-        if lines[0].split()[0].lower() in ['s', 'selective', 'dynamics', 'd']:
-            self.dynamic = True
-            lines = lines[1:]
+        if lines[0].strip():
 
-        # read direct or cartesian
-        if lines[0].strip().lower() in ['c', 'cartesian']:
-            self.direct = False
+            if  lines[0].split()[0].lower() in ['s', 'selective', 'dynamics', 'd']:
+                self.dynamic = True
+                lines = lines[1:]
 
-        # read coordinates and dynamic label
-        for i in range(1, 1 + len(self.elements)):
-            self.coordinates.append([float(x) for x in lines[i].split()[:3]])
-            if self.dynamic:
-                self.dynamic_label.append(lines[i].split()[3:])
+            # read direct or cartesian
+            if lines[0].strip().lower() in ['c', 'cartesian']:
+                self.direct = False
+
+            # read coordinates and dynamic label
+            for i in range(1, 1 + len(self.elements)):
+                self.coordinates.append([float(x) for x in lines[i].split()[:3]])
+                if self.dynamic:
+                    self.dynamic_label.append(lines[i].split()[3:])
             
         # make sure the coordinates are in cartesian
         self.to_cartesian()
@@ -108,10 +110,10 @@ class POSCAR():
             ex_atom.coordinates = np.dot(ex_atom.coordinates, np.linalg.inv(self.box))
         return True
 
-    def add_molecule(self, new_atoms):
+    def add_molecule(self, new_atoms, const_dist=0.5):
         for ex_atom in self.ex_atoms:
             for new_atom in new_atoms:
-                if not ex_atom.is_legal(new_atom):
+                if not ex_atom.is_legal(new_atom, const_dist):
                     return False
 
         self.atoms += new_atoms
@@ -158,6 +160,7 @@ class POSCAR():
                         f.write('\n')
 
     def add_new_ex_atoms(self, atom):
+        # TODO: recude the number of new atoms
         for i in range(-1, 2):
             for j in range(-1, 2):
                 for k in range(-1, 2):
@@ -176,8 +179,8 @@ class Atom():
     def __str__(self):
         return f'{self.element}: {self.coordinates[0]} {self.coordinates[1]} {self.coordinates[2]} {self.dynamic_label}'
 
-    def is_legal(self, atom):
-        if np.linalg.norm(np.array(self.coordinates) - np.array(atom.coordinates)) < self.Vdw + atom.Vdw:
+    def is_legal(self, atom, const_dist=0.5):
+        if np.linalg.norm(np.array(self.coordinates) - np.array(atom.coordinates)) < (self.Vdw + atom.Vdw) * const_dist:
             return False
         return True
 

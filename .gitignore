@@ -2,3 +2,7 @@ POSCAR*
 AddMol
 /.vscode
 __pycache__
+
+!POSCAR_H2O
+
+!AddMol_H2O
