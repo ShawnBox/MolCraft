@@ -1,7 +1,7 @@
 from src.MoleculeData import POSCAR, AddMol
 from src.AddMolecule import AddMolecule
 
-# TODO: Add a process to verify input validity
+# TODO: Add multiple molecules
 
 # get input file path
 input_file = input('Please input the POSCAR file name, defaul: [POSCAR]\n')

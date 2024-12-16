@@ -111,6 +111,11 @@ class POSCAR():
         return True
 
     def add_molecule(self, new_atoms, const_dist=0.5):
+        '''
+        Here, we should note that when the number of atoms in the new molecule is large, the time complexity of this function is O(nm) (m is the number of ex_atom, n is the number of new_atoms), which is not efficient.
+        Maybe we can use the k-d tree to optimize this function, so the time complexity can be reduced to O(nlogm).
+        '''
+        # TODO: using k-d tree to optimize this function
         for ex_atom in self.ex_atoms:
             for new_atom in new_atoms:
                 if not ex_atom.is_legal(new_atom, const_dist):
@@ -160,11 +165,18 @@ class POSCAR():
                         f.write('\n')
 
     def add_new_ex_atoms(self, atom):
-        # TODO: recude the number of new atoms
+        def is_edge(coordinate):
+            for i in range(3):
+                if coordinate[i] < -0.3 or coordinate[i] > 1.3:
+                    return False
+            return True
+
         for i in range(-1, 2):
             for j in range(-1, 2):
                 for k in range(-1, 2):
                     new_coordinates = atom.coordinates + np.dot(np.array([i, j, k]), self.box)
+                    if not is_edge(np.dot(new_coordinates, np.linalg.inv(self.box))):
+                        continue
                     self.ex_atoms.append(Atom(atom.element, new_coordinates))
             
 
