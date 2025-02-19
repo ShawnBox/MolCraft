@@ -19,29 +19,36 @@ def get_random_angle():
     return [random.uniform(0, 360), random.uniform(0, 360), random.uniform(0, 360)]
 
 def AddMolecule(poscar, add_range, num_mol, addmol, const_dist):
-    add_count = 0
+    r"""
+    poscar: POSCAR object
+    add_range: list of list, the range of x, y, z in direct coordinates
+    num_mol: list of int, the number of molecules you want to add
+    addmol: list of AddMol object
+    const_dist: float, the constant for distance calculation
+    """
 
-    for i in range(MAX_TRIES * num_mol):
-        if add_count == num_mol:
-            return True
+    try_count = 0
+    for i in range(len(num_mol)):
+        add_count = 0
+        while True:
+            if try_count == MAX_TRIES:
+                return False
+            if add_count == num_mol[i]:
+                break
+            pos = np.dot(get_random_pos(add_range), poscar.box)
+            angle = get_random_angle()
+            coords = addmol[i].rotate(angle)
+            atoms = []
+            for k in range(addmol[i].num_mol):
+                atoms.append(Atom(addmol[i].elements[k], coords[k] + pos, ['T', 'T', 'T']))
 
-        pos = np.dot(get_random_pos(add_range), poscar.box)
-        angle = get_random_angle()
-        coords = addmol.rotate(angle)
-        atoms = []
-        for j in range(addmol.num_mol):
-            atoms.append(Atom(addmol.elements[j], coords[j] + pos, ['T', 'T', 'T']))
-
-        # test code
-        # for j in range(len(atoms)):
-        #     print(atoms[j])
-
-        if not poscar.add_molecule(atoms, const_dist):
-            continue
-        add_count += 1
-        print(f'Successfully added {add_count} molecules when trying {i} times')
-
-    return False
+            if not poscar.add_molecule(atoms, const_dist):
+                continue
+            add_count += 1
+            try_count += 1
+            print(f'Successfully added {add_count} molecules of the {i}th AddMol when trying {try_count} times')
+        
+    return True
         
 
 

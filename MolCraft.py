@@ -6,21 +6,25 @@ from src.AddMolecule import AddMolecule
 # get input file path
 input_file = input('Please input the POSCAR file name, defaul: [POSCAR]\n')
 input_file = input_file if input_file.strip() else 'POSCAR'
-input_addmol = input('Please input the AddMol file name, default: [AddMol]\n')
-input_addmol = input_addmol if input_addmol.strip() else 'AddMol'
+input_addmols = input('Please input the AddMol file name, default: [AddMol]\n')
+input_addmols = input_addmols.split() if input_addmols.strip() else ['AddMol']
 
 # check if the file exists
 try:
     with open('./'+input_file, 'r'):
         pass
-    with open('./'+input_addmol, 'r'):
-        pass
+    for input_addmol in input_addmols:
+        with open('./'+input_addmol, 'r'):
+            pass
 except FileNotFoundError:
     print('File not found!')
     exit(1)
 
 # read files
-addmol = AddMol('./' + input_addmol)
+addmol = []
+for input_addmol in input_addmols:
+    addmol.append(AddMol('./'+input_addmol))
+
 poscar = POSCAR('./' + input_file)
 
 def get_input_range(axis, default=[0, 1.0]):
@@ -46,7 +50,8 @@ except AssertionError:
 
 # Get the number of molecules you want to add
 n_mol = input('Please input the number of molecules you want to add, default: [1]\n')
-n_mol = int(n_mol) if n_mol.strip() else 1
+n_mol = n_mol.split() if n_mol.strip() else ['1']
+n_mol = [int(x) for x in n_mol]
 
 # Get the cosntant for distance calculation
 const_dist = input('Please input the constant for distance calculation, default: [0.5]\n')

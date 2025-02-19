@@ -4,3 +4,5 @@ AddMol
 __pycache__
 
 !POSCAR_H2O
+*.vasp
+Add*
