@@ -1,5 +1,6 @@
 from src.MoleculeData import POSCAR, AddMol
 from src.AddMolecule import AddMolecule
+import os
 
 # TODO: Add multiple molecules
 
@@ -57,13 +58,26 @@ n_mol = [int(x) for x in n_mol]
 const_dist = input('Please input the constant for distance calculation, default: [0.5]\n')
 const_dist = float(const_dist) if const_dist.strip() else 0.5
 
-# Add molecules
-if AddMolecule(poscar, add_range, n_mol, addmol, const_dist):
-    print('Add molecules successfully!')
-else:
-    print('Add molecules failed!')
+# 获取随机生成的结构数目
+n_rand = input('Please input the number of random structures you want to generate, default: [1]\n')
+n_rand = n_rand.split() if n_rand.strip() else ['1']
 
-# Write the new POSCAR
-poscar.to_direct()
-poscar.write_POSCAR('./'+input_file+'_new')
+for i in range(int(n_rand[0])):
+    p = poscar.copy()
+
+    # Add molecules
+    if AddMolecule(p, add_range, n_mol, addmol, const_dist):
+        print('Add molecules successfully in the '+str(i)+'th structure!')
+    else:
+        print('Add molecules failed in the '+str(i)+'th structure!')
+
+    # Write the new POSCAR
+    p.to_direct()
+
+    output_dir = './output/'+input_file+'/'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    p.write_POSCAR(output_dir+input_file+'_new_'+str(i))
+
 

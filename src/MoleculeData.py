@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 # read VdW.ini file
 Vdw = {}
@@ -178,6 +179,9 @@ class POSCAR():
                     if not is_edge(np.dot(new_coordinates, np.linalg.inv(self.box))):
                         continue
                     self.ex_atoms.append(Atom(atom.element, new_coordinates))
+
+    def copy(self):
+        return copy.deepcopy(self)
             
 
 
