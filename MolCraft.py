@@ -1,83 +1,203 @@
 from src.MoleculeData import POSCAR, AddMol
 from src.AddMolecule import AddMolecule
 import os
+import glob
 
-# TODO: Add multiple molecules
 
-# get input file path
-input_file = input('Please input the POSCAR file name, defaul: [POSCAR]\n')
-input_file = input_file if input_file.strip() else 'POSCAR'
-input_addmols = input('Please input the AddMol file name, default: [AddMol]\n')
-input_addmols = input_addmols.split() if input_addmols.strip() else ['AddMol']
+def select_file(prompt, files, default_idx=0, multi=False):
+    """Show a numbered menu for file selection. Supports single and multi-select."""
+    if not files:
+        return None
 
-# check if the file exists
-try:
-    with open('./'+input_file, 'r'):
-        pass
-    for input_addmol in input_addmols:
-        with open('./'+input_addmol, 'r'):
-            pass
-except FileNotFoundError:
-    print('File not found!')
-    exit(1)
+    print(f"\n{prompt}")
+    for i, f in enumerate(files):
+        marker = " [default]" if i == default_idx else ""
+        print(f"  [{i+1}] {f}{marker}")
+    if multi:
+        print("  (e.g. '1 3' for multiple, 'all' for all)")
 
-# read files
-addmol = []
-for input_addmol in input_addmols:
-    addmol.append(AddMol('./'+input_addmol))
+    while True:
+        choice = input(f"Choice (Enter=default #{default_idx+1}): ").strip()
 
-poscar = POSCAR('./' + input_file)
+        if not choice:
+            return files if multi else [files[default_idx]]
 
-def get_input_range(axis, default=[0, 1.0]):
-    tmp = input(f'Please input the filled range of {axis}, default: [0.0 1.0]\n')
-    if not tmp.strip():
-        return default
-    return [float(x) for x in tmp.split()]
+        if multi and choice.lower() == 'all':
+            return files
 
-# Get the xyz range of poscar in direct coordinates
-x_range = get_input_range('x')
-y_range = get_input_range('y')
-z_range = get_input_range('z')
-add_range = [x_range, y_range, z_range]
+        try:
+            indices = [int(x) for x in choice.split()]
+        except ValueError:
+            print(f"  Please enter valid number(s) (1-{len(files)}).")
+            continue
 
-# check if the range is valid
-try:
-    assert 0 <= x_range[0] < x_range[1] <= 1
-    assert 0 <= y_range[0] < y_range[1] <= 1
-    assert 0 <= z_range[0] < z_range[1] <= 1
-except AssertionError:
-    print('Invalid range!')
-    exit(1)
+        selected = [files[i-1] for i in indices if 1 <= i <= len(files)]
+        invalid = [i for i in indices if not (1 <= i <= len(files))]
+        if invalid:
+            print(f"  Invalid: {invalid}. Valid range: 1-{len(files)}")
+        if selected:
+            return selected if multi else selected[0]
 
-# Get the number of molecules you want to add
-n_mol = input('Please input the number of molecules you want to add, default: [1]\n')
-n_mol = n_mol.split() if n_mol.strip() else ['1']
-n_mol = [int(x) for x in n_mol]
 
-# Get the cosntant for distance calculation
-const_dist = input('Please input the constant for distance calculation, default: [0.5]\n')
-const_dist = float(const_dist) if const_dist.strip() else 0.5
+def get_float(prompt, default):
+    while True:
+        val = input(f"{prompt} [default: {default}]: ").strip()
+        if not val:
+            return default
+        try:
+            return float(val)
+        except ValueError:
+            print("  Enter a valid number.")
 
-# 获取随机生成的结构数目
-n_rand = input('Please input the number of random structures you want to generate, default: [1]\n')
-n_rand = n_rand.split() if n_rand.strip() else ['1']
 
-for i in range(int(n_rand[0])):
-    p = poscar.copy()
+def get_int(prompt, default):
+    while True:
+        val = input(f"{prompt} [default: {default}]: ").strip()
+        if not val:
+            return default
+        try:
+            return int(val)
+        except ValueError:
+            print("  Enter a valid integer.")
 
-    # Add molecules
-    if AddMolecule(p, add_range, n_mol, addmol, const_dist):
-        print('Add molecules successfully in the '+str(i)+'th structure!')
+
+def get_range(axis, default=(0, 1.0)):
+    lo, hi = default
+    while True:
+        val = input(f"Fill range on {axis}-axis [default: {lo} {hi}]: ").strip()
+        if not val:
+            return list(default)
+        parts = val.split()
+        if len(parts) != 2:
+            print("  Enter two numbers (e.g. '0 1').")
+            continue
+        try:
+            a, b = float(parts[0]), float(parts[1])
+        except ValueError:
+            print("  Enter two valid numbers.")
+            continue
+        if not (0 <= a < b <= 1):
+            print("  Must satisfy 0 <= low < high <= 1.")
+            continue
+        return [a, b]
+
+
+def find_addmol_files():
+    """Find probable AddMol files in the current directory."""
+    all_items = os.listdir('.')
+    excluded_ext = {'.py', '.vasp', '.md', '.txt'}
+    excluded_names = {'.gitignore', 'LICENSE', 'README.md'}
+    candidates = []
+    for name in all_items:
+        path = os.path.join('.', name)
+        if not os.path.isfile(path):
+            continue
+        ext = os.path.splitext(name)[1].lower()
+        if ext in excluded_ext or name.startswith('.') or name in excluded_names:
+            continue
+        candidates.append(name)
+    return sorted(candidates)
+
+
+def find_poscar_files():
+    """Find POSCAR and .vasp files in the current directory."""
+    return sorted(glob.glob("POSCAR*") + glob.glob("*.vasp"))
+
+
+def main():
+    print("=" * 60)
+    print("  MolCraft - Add molecules to POSCAR crystal structures")
+    print("=" * 60)
+
+    # -- File selection --
+    poscar_files = find_poscar_files()
+    addmol_files = find_addmol_files()
+
+    # POSCAR
+    if poscar_files:
+        sel = select_file("Select POSCAR file:", poscar_files)
+        input_file = sel if sel else input("\nPOSCAR file name: ").strip() or 'POSCAR'
     else:
-        print('Add molecules failed in the '+str(i)+'th structure!')
+        input_file = input("\nPOSCAR file name: ").strip()
+    if not input_file or not os.path.isfile(input_file):
+        print(f"Error: '{input_file}' not found. Exiting.")
+        return
+    print(f"  > POSCAR: {input_file}")
 
-    # Write the new POSCAR
-    p.to_direct()
+    # AddMol
+    if addmol_files:
+        sel = select_file("Select AddMol file(s):", addmol_files, multi=True)
+        input_addmols = sel if sel else []
+    else:
+        input_addmols = []
 
-    output_dir = './output/'+input_file+'/'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not input_addmols:
+        raw = input("AddMol file name(s) (space-separated): ").strip().split()
+        input_addmols = raw if raw else ['AddMol']
 
-    p.write_POSCAR(output_dir+input_file+'_new_'+str(i))
+    missing = [f for f in input_addmols if not os.path.isfile(f)]
+    if missing:
+        print(f"Error: files not found: {', '.join(missing)}. Exiting.")
+        return
+    print(f"  > AddMol: {', '.join(input_addmols)}")
+
+    # -- Read data --
+    addmol_objs = [AddMol(f'./{f}') for f in input_addmols]
+    poscar = POSCAR(f'./{input_file}')
+
+    # -- Ranges --
+    print("\n--- Fill ranges (direct coordinates, 0-1) ---")
+    x_range = get_range('x')
+    y_range = get_range('y')
+    z_range = get_range('z')
+    add_range = [x_range, y_range, z_range]
+
+    # -- Molecule counts --
+    n_mol_default = get_int("\nNumber of molecules to add per AddMol", 1)
+    if len(input_addmols) > 1:
+        n_mol = []
+        for i, f in enumerate(input_addmols):
+            n_mol.append(get_int(f"  > Molecules for '{f}'", n_mol_default))
+    else:
+        n_mol = [n_mol_default]
+
+    # -- Other parameters --
+    const_dist = get_float("Distance constant (vdW scaling)", 0.5)
+    n_rand = get_int("Random structures to generate", 1)
+
+    # -- Confirmation --
+    print(f"\n{'=' * 60}")
+    print(f"  POSCAR:           {input_file}")
+    print(f"  AddMol:           {', '.join(input_addmols)}")
+    print(f"  Fill range:       x=[{x_range[0]},{x_range[1]}]  "
+          f"y=[{y_range[0]},{y_range[1]}]  z=[{z_range[0]},{z_range[1]}]")
+    print(f"  Molecules/AddMol: {n_mol}")
+    print(f"  vdW constant:     {const_dist}")
+    print(f"  Structures:       {n_rand}")
+    print(f"{'=' * 60}")
+
+    if input("Start? [Y/n]: ").strip().lower() in ('n', 'no'):
+        print("Cancelled.")
+        return
+
+    # -- Run --
+    base_name = os.path.splitext(input_file)[0]
+    output_dir = f'./output/{base_name}/'
+    os.makedirs(output_dir, exist_ok=True)
+
+    for i in range(n_rand):
+        p = poscar.copy()
+        p.to_cartesian()
+
+        if AddMolecule(p, add_range, n_mol, addmol_objs, const_dist):
+            print(f"  [OK] Structure #{i+1}: molecules added")
+        else:
+            print(f"  [FAIL] Structure #{i+1}: failed (max tries reached)")
+
+        p.write_POSCAR(os.path.join(output_dir, f'{base_name}_new_{i+1}'))
+
+    print(f"\nDone! Output -> {output_dir}")
 
 
+if __name__ == '__main__':
+    main()

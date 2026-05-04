@@ -46,7 +46,7 @@ def AddMolecule(poscar, add_range, num_mol, addmol, const_dist):
                 continue
             add_count += 1
             try_count += 1
-            print(f'Successfully added {add_count} molecules of the {i}th AddMol when trying {try_count} times')
+            print(f'Successfully added {add_count} molecules of the {i+1}th AddMol when trying {try_count} times')
         
     return True
         
