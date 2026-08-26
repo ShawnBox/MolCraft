@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "molcraft"
+version = "1.0.0"
+description = "Place molecules into POSCAR (VASP) crystal structures via random Monte Carlo placement with van der Waals radius validation."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Xiang Liu", email = "shawnbox202025@gmail.com" },
+]
+keywords = ["POSCAR", "VASP", "crystal-structure", "molecular-dynamics", "monte-carlo", "chemistry"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+dependencies = [
+    "numpy",
+]
+
+[project.urls]
+Homepage = "https://github.com/ShawnBox/MolCraft"
+Repository = "https://github.com/ShawnBox/MolCraft"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

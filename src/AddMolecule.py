@@ -31,11 +31,12 @@ def AddMolecule(poscar: POSCAR,
     const_dist: float, the constant for distance calculation
     """
     for i in range(len(num_mol)):
-        added = 0
-        tries = 0
+        placed = 0
+        attempts = 0
         single = addmol[i].single_atom
 
-        while added < num_mol[i] and tries < MAX_TRIES:
+        while placed < num_mol[i] and attempts < MAX_TRIES:
+            attempts += 1
             pos = np.dot(get_random_pos(add_range), poscar.box)
             angle = [0, 0, 0] if single else get_random_angle()
             coords = addmol[i].rotate(angle)
@@ -46,15 +47,13 @@ def AddMolecule(poscar: POSCAR,
             ]
 
             if not poscar.add_molecule(atoms, const_dist):
-                tries += 1
                 continue
 
-            added += 1
-            tries += 1
-            print(f'  [{added}/{num_mol[i]}] Added molecule from AddMol #{i+1}'
-                  f' (trial {tries})')
+            placed += 1
+            print(f'  [{placed}/{num_mol[i]}] Added molecule from AddMol #{i+1}'
+                  f' (attempt {attempts})')
 
-        if added < num_mol[i]:
+        if placed < num_mol[i]:
             return False
 
     return True

@@ -75,20 +75,36 @@ class Atom:
 
 
 class POSCAR:
+    """A VASP POSCAR crystal structure.
+
+    ``self.atoms`` is the single source of truth for coordinates and element
+    composition. ``coordinates`` and ``elements`` are derived properties, so
+    the two representations never drift apart. Coordinates are kept in the
+    representation indicated by ``self.direct``; call :meth:`to_cartesian` /
+    :meth:`to_direct` before operating on them.
+    """
+
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.lattice_constant = 0.0
         self.box = np.zeros((3, 3))
-        self.elements: list[str] = []
         self.dynamic = False
-        self.dynamic_label: list[list[str]] = []
         self.direct = True
-        self.coordinates: list[np.ndarray] = []
         self.atoms: list[Atom] = []
         self.element_dict: dict[str, int] = {}
         self._inv_box: np.ndarray | None = None
 
         self.read_POSCAR()
+
+    # ---- Derived views (single source of truth is self.atoms) ----
+
+    @property
+    def coordinates(self) -> list[np.ndarray]:
+        return [a.coordinates for a in self.atoms]
+
+    @property
+    def elements(self) -> list[str]:
+        return [a.element for a in self.atoms]
 
     # ---- I/O ----
 
@@ -106,7 +122,7 @@ class POSCAR:
         names = lines[5].split()
         counts = [int(lines[6].split()[k]) for k in range(len(names))]
         self.element_dict = dict(zip(names, counts))
-        self.elements = [e for e, n in self.element_dict.items() for _ in range(n)]
+        elements = [e for e, n in self.element_dict.items() for _ in range(n)]
 
         lines = lines[7:]
         if not lines or not lines[0].strip():
@@ -119,21 +135,20 @@ class POSCAR:
         if lines and lines[0].strip().lower() in ('c', 'cartesian'):
             self.direct = False
 
-        for i in range(1, 1 + len(self.elements)):
+        coords_raw, labels_raw = [], []
+        for i in range(1, 1 + len(elements)):
             if i >= len(lines):
                 break
             parts = lines[i].split()
-            self.coordinates.append(np.array([float(x) for x in parts[:3]]))
-            if self.dynamic:
-                self.dynamic_label.append(parts[3:])
+            coords_raw.append(np.array([float(x) for x in parts[:3]]))
+            labels_raw.append(parts[3:] if self.dynamic else [])
 
-        self.to_cartesian()
+        self.atoms = [
+            Atom(el, coord, label)
+            for el, coord, label in zip(elements, coords_raw, labels_raw)
+        ]
 
-        # build atoms
-        for i in range(len(self.elements)):
-            coord = self.coordinates[i]
-            label = self.dynamic_label[i] if self.dynamic else []
-            self.atoms.append(Atom(self.elements[i], coord, label))
+        self.to_cartesian()  # normalise to Cartesian on load
 
     def write_POSCAR(self, file_path: str) -> None:
         self.to_direct()
@@ -168,8 +183,6 @@ class POSCAR:
         if not self.direct:
             return False
         self.direct = False
-        for i, coord in enumerate(self.coordinates):
-            self.coordinates[i] = coord @ self.box
         for atom in self.atoms:
             atom.coordinates = atom.coordinates @ self.box
         return True
@@ -179,8 +192,6 @@ class POSCAR:
             return False
         self.direct = True
         inv = self._inv_box if self._inv_box is not None else np.linalg.inv(self.box)
-        for i, coord in enumerate(self.coordinates):
-            self.coordinates[i] = coord @ inv
         for atom in self.atoms:
             atom.coordinates = atom.coordinates @ inv
         return True
@@ -216,10 +227,6 @@ class POSCAR:
 
     def _append_atoms(self, new_atoms: list[Atom]) -> None:
         self.atoms += new_atoms
-        self.elements += [a.element for a in new_atoms]
-        self.coordinates += [a.coordinates for a in new_atoms]
-        if self.dynamic:
-            self.dynamic_label += [a.dynamic_label for a in new_atoms]
         for a in new_atoms:
             self.element_dict[a.element] = self.element_dict.get(a.element, 0) + 1
 
